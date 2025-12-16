@@ -139,34 +139,40 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// BPMに同期した4/4拍子ノーツシーケンスを生成
     /// 現在のお手本フェーズ期間中のみノーツを配置
+    /// フェーズ開始時の音楽再生時間を基準にしたタイミングを生成
     /// </summary>
     private void SetupBPMSyncedSequence()
     {
         List<float> timings = new List<float>();
         float beatDuration = GetBeatDuration();
         
-        // メトロノームのオフセットを考慮
-        float baseTime = -metronomeOffsetSeconds;
-        
         // 現在のお手本フェーズの持続時間を計算（秒）
         float phaseDurationSeconds = GetPhaseDuration(GamePhase.Sample);
         
-        // 現在のお手本フェーズ期間内のノーツのみを生成
+        // 現在の音楽再生時間を基準にする（このフェーズ開始時点の音楽時間）
+        float phaseStartMusicTime = audioSource != null ? audioSource.time : 0f;
+        
+        // メトロノームのオフセットを考慮
+        float baseTime = -metronomeOffsetSeconds;
+        
+        // フェーズ期間内のノーツのみを生成
+        // タイミングは「フェーズ開始時の音楽時間 + オフセット」で計算
         int maxBeats = (int)Mathf.Ceil(phaseDurationSeconds / beatDuration);
         
         for (int beatIndex = 1; beatIndex <= maxBeats; beatIndex++)
         {
-            float noteTime = baseTime + beatIndex * beatDuration;
-            if (noteTime <= phaseDurationSeconds)  // お手本フェーズ期間内のみ追加
+            float offsetTime = baseTime + beatIndex * beatDuration;
+            if (offsetTime <= phaseDurationSeconds)  // フェーズ期間内のみ追加
             {
-                timings.Add(noteTime);
+                float absoluteTime = phaseStartMusicTime + offsetTime;
+                timings.Add(absoluteTime);
             }
         }
 
         if (rhythmManager != null)
         {
             rhythmManager.SetTargetTimings(timings);
-            Debug.Log($"[GameManager] お手本フェーズ用シーケンス設定: {timings.Count}個のノーツを生成（フェーズ時間: {phaseDurationSeconds:F2}秒）");
+            Debug.Log($"[GameManager] お手本フェーズ用シーケンス設定: {timings.Count}個のノーツを生成（フェーズ開始時間: {phaseStartMusicTime:F2}秒, フェーズ期間: {phaseDurationSeconds:F2}秒）");
         }
     }
 
