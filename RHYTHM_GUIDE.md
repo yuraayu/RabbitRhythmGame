@@ -32,11 +32,10 @@
 ```
 ゲーム設定:
 ├── Music Clip: BGM オーディオクリップ
-├── BPM: 120（曲のテンポ）
+├── BPM: 135（曲のテンポ）
 ├── Beats Per Measure: 4（1小節の拍数）
-├── Listen Phase Duration: 3.0（お手本フェーズ秒数）
-├── Play Phase Duration: 3.0（プレイフェーズ秒数）
-└── Result Phase Duration: 1.0（結果フェーズ秒数）
+├── Player Phase Measures: 1（プレイヤーフェーズの小節数）
+└── Sample Phase Measures: 1（お手本フェーズの小節数）
 ```
 
 ### 2. BPM ベースのシーケンス生成（C# コード例）
@@ -57,10 +56,10 @@ gameManager.listenSequenceTimings = new List<float>
 int[] beatPattern = { 1, 1, 2 };
 gameManager.listenSequenceTimings = gameManager.GenerateSimpleSequence(beatPattern);
 
-// BPM 120 の場合：
-// - 1拍 = 0.5 秒
-// - 2拍 = 1.0 秒
-// タイミング：0秒、0.5秒、1.0秒
+// BPM 135 の場合：
+// - 1拍 ≈ 0.444 秒
+// - 2拍 ≈ 0.889 秒
+// タイミング：0秒、0.444秒、0.889秒
 ```
 
 ### 3. RhythmManager の設定
@@ -136,9 +135,9 @@ gameManager.listenSequenceTimings = gameManager.GenerateSimpleSequence(beatPatte
 ### 例1：シンプルな 4 拍
 
 ```csharp
-// BPM 120 の場合、各拍は 0.5 秒間隔
+// BPM 135 の場合、各拍は約 0.444 秒間隔
 int[] pattern = { 1, 1, 1, 1 };  // 4 拍均等
-// タイミング: 0s, 0.5s, 1.0s, 1.5s
+// タイミング: 0s, 0.444s, 0.889s, 1.333s
 ```
 
 ### 例2：シンコペーション（複合拍）
@@ -159,11 +158,11 @@ int[] pattern = { 2, 1, 1, 2, 1 };  // 5つのノーツ
 
 ## 重要なポイント
 
-### ✅ プレイフェーズ中のみ入力受け付け
+### ✅ プレイヤーフェーズ中のみ入力受け付け
 
 ```csharp
 // NoteJudgeController.OnPlayerTap() 内で確認
-if (gameManager != null && gameManager.GetCurrentPhase() != GameManager.GamePhase.Play)
+if (gameManager != null && gameManager.GetCurrentPhase() != GameManager.GamePhase.Player)
 {
     return;  // お手本フェーズでは入力を無視
 }
@@ -172,14 +171,15 @@ if (gameManager != null && gameManager.GetCurrentPhase() != GameManager.GamePhas
 ### ✅ お手本フェーズではノーツは消えない
 
 ```csharp
-// RhythmManager の Destroy() は noteLifetime 後
-// プレイフェーズで入力すると即座に消去
+// RhythmManager の Update() でお手本フェーズ中のみノーツを配置
+// プレイヤーフェーズで入力すると即座に消去
 ```
 
-### ✅ Miss 判定はプレイフェーズ中のみ
+### ✅ Miss 判定はプレイヤーフェーズ中のみ
 
 ```csharp
-// CheckMissedNotes() で Playフェーズをチェック
+// CheckMissedNotes() でプレイヤーフェーズをチェック
+// お手本フェーズでは Miss が判定されない
 ```
 
 ---

@@ -308,4 +308,28 @@ public class GameManager : MonoBehaviour
     {
         return 60f / bpm;
     }
+
+    /// <summary>
+    /// BPM を動的に変更する
+    /// 次のお手本フェーズからノーツタイミングが新しい BPM で計算される
+    /// </summary>
+    public void SetBPM(float newBPM)
+    {
+        if (newBPM <= 0)
+        {
+            Debug.LogError("[GameManager] BPM は正の値である必要があります");
+            return;
+        }
+
+        float oldBPM = bpm;
+        bpm = newBPM;
+
+        // メトロノーム側の BPM も更新
+        if (metronomeManager != null)
+        {
+            metronomeManager.SetBPM(newBPM);
+        }
+
+        Debug.Log($"[GameManager] BPM を {oldBPM} から {newBPM} に変更しました");
+    }
 }
