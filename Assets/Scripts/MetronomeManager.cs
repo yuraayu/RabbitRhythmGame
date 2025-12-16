@@ -17,7 +17,7 @@ public class MetronomeManager : MonoBehaviour
     [Tooltip("通常の拍音")]
     public AudioClip beatSound;
     
-    [Tooltip("小節頭の拍音（より大きい音）")]
+    [Tooltip("小節末尾の拍音（より大きい音）")]
     public AudioClip measureHeadSound;
 
     [Header("コントロール")]
@@ -126,16 +126,17 @@ public class MetronomeManager : MonoBehaviour
     /// </summary>
     private void PlayBeat()
     {
-        AudioClip clip = (currentBeat == 0) ? measureHeadSound : GetBeatSoundForPhase();
+        bool isMeasureTail = (currentBeat == beatsPerMeasure - 1);
+        AudioClip clip = isMeasureTail ? measureHeadSound : GetBeatSoundForPhase();
         
         if (clip != null)
         {
             audioSource.PlayOneShot(clip);
-            Debug.Log($"[メトロノーム] 小節 {currentMeasure + 1}, 拍 {currentBeat + 1} ({(currentBeat == 0 ? "強" : "弱")})");
+            Debug.Log($"[メトロノーム] 小節 {currentMeasure + 1}, 拍 {currentBeat + 1} ({(isMeasureTail ? "強" : "弱")})");
         }
         else
         {
-            Debug.LogWarning($"[MetronomeManager] ビート音が設定されていません (小節頭={currentBeat == 0})");
+            Debug.LogWarning($"[MetronomeManager] ビート音が設定されていません (小節末尾={isMeasureTail})");
         }
     }
 
@@ -156,8 +157,8 @@ public class MetronomeManager : MonoBehaviour
         // SoundManager 経由で、フェーズに応じた拍音を取得
         if (soundManager != null)
         {
-            // メトロノーム小節頭以外の拍の場合
-            if (currentBeat != 0)
+            // メトロノーム小節末尾以外の拍の場合
+            if (currentBeat != beatsPerMeasure - 1)
             {
                 return isPlayerPhase ? soundManager.playerPhaseBeatSound : soundManager.samplePhaseBeatSound;
             }

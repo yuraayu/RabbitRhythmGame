@@ -139,7 +139,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// BPMに同期した4/4拍子ノーツシーケンスを生成
     /// 現在のお手本フェーズ期間中のみノーツを配置
-    /// メトロノームの小節頭（拍0）からの相対タイミングで計算
+    /// メトロノームの小節末尾からの相対タイミングで計算
     /// </summary>
     private void SetupBPMSyncedSequence()
     {
@@ -152,7 +152,7 @@ public class GameManager : MonoBehaviour
         // 現在の音楽再生時間を基準にする（このフェーズ開始時点の音楽時間）
         float phaseStartMusicTime = audioSource != null ? audioSource.time : 0f;
         
-        // メトロノームが有効な場合、メトロノーム小節頭との相対タイミングで計算
+        // メトロノームが有効な場合、メトロノーム小節末尾との相対タイミングで計算
         float effectivePhaseStartTime = phaseStartMusicTime;
         
         if (metronomeManager != null && metronomeManager.isMetronomeEnabled)
@@ -163,14 +163,17 @@ public class GameManager : MonoBehaviour
             // 現在の拍位置を計算
             int currentBeat = metronomeManager.GetCurrentBeat();
             
-            // 小節頭からの経過時間を計算
-            float timeIntoCurrentMeasure = currentBeat * beatDuration;
+            // 小節末尾（最後の拍）からの経過時間を計算
+            // 小節末尾は beatsPerMeasure - 1 なので、そこからの距離を計算
+            int beatsToMeasureTail = (beatsPerMeasure - 1) - currentBeat;
+            if (beatsToMeasureTail < 0)
+            {
+                beatsToMeasureTail += beatsPerMeasure;  // 次の小節末尾
+            }
+            float timeToMeasureTail = beatsToMeasureTail * beatDuration;
             
-            // 次の小節頭までの時間を計算
-            float timeToNextMeasureHead = (beatsPerMeasure - currentBeat) * beatDuration;
-            
-            // 小節頭を基準にしたフェーズ開始時間
-            effectivePhaseStartTime = phaseStartMusicTime - timeIntoCurrentMeasure;
+            // 小節末尾を基準にしたフェーズ開始時間
+            effectivePhaseStartTime = phaseStartMusicTime - timeToMeasureTail;
         }
         
         // フェーズ期間内のノーツのみを生成
@@ -198,14 +201,15 @@ public class GameManager : MonoBehaviour
 
     private void UpdatePhase()
     {
-        // メトロノームが有効で開始している場合、メトロノームの小節頭でフェーズ切り替え
+        // メトロノームが有効で開始している場合、メトロノームの小節末尾でフェーズ切り替え
         if (metronomeManager != null && metronomeManager.isMetronomeEnabled)
         {
             int currentMeasure = metronomeManager.GetCurrentMeasure();
             int currentBeat = metronomeManager.GetCurrentBeat();
+            int measureTailBeat = beatsPerMeasure - 1;  // 小節末尾の拍
 
-            // 小節頭（拍0）に到達したかつ、前回のフェーズ切り替えから十分な小節が経過
-            if (currentBeat == 0 && currentMeasure != lastPhaseSwitchMeasure)
+            // 小節末尾（拍3）に到達したかつ、前回のフェーズ切り替えから十分な小節が経過
+            if (currentBeat == measureTailBeat && currentMeasure != lastPhaseSwitchMeasure)
             {
                 int measuresSinceLastSwitch = currentMeasure - lastPhaseSwitchMeasure;
                 int targetInterval = GetPhaseSwitchInterval();
