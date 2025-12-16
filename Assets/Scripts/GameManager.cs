@@ -51,6 +51,9 @@ public class GameManager : MonoBehaviour
     [Tooltip("メトロノーム開始のオフセット（秒）")]
     public float metronomeOffsetSeconds = 0f;
 
+    [Tooltip("フェーズ切り替えの遅延（秒、正値で遅くなる）")]
+    public float phaseSwitchDelaySeconds = 0f;
+
     // === プライベート変数 ===
     private AudioSource audioSource;
     private bool isGameActive = false;
@@ -216,8 +219,16 @@ public class GameManager : MonoBehaviour
 
                 if (measuresSinceLastSwitch >= targetInterval)
                 {
-                    TransitionToPhase(currentPhase == GamePhase.Player ? GamePhase.Sample : GamePhase.Player);
-                    lastPhaseSwitchMeasure = currentMeasure;
+                    // フェーズ切り替え遅延を適用
+                    float metronomeElapsedTime = metronomeManager.GetElapsedTime();
+                    float beatDuration = GetBeatDuration();
+                    float timeSinceMeasureTail = metronomeElapsedTime % (beatDuration * beatsPerMeasure) - (measureTailBeat * beatDuration);
+                    
+                    if (timeSinceMeasureTail >= phaseSwitchDelaySeconds)
+                    {
+                        TransitionToPhase(currentPhase == GamePhase.Player ? GamePhase.Sample : GamePhase.Player);
+                        lastPhaseSwitchMeasure = currentMeasure;
+                    }
                 }
             }
         }
