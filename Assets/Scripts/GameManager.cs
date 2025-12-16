@@ -137,8 +137,8 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// BPMに同期した4/4拍子ノーツシーケンスを生成（無限ループ）
-    /// メトロノームのオフセットを反映
+    /// BPMに同期した4/4拍子ノーツシーケンスを生成
+    /// 現在のお手本フェーズ期間中のみノーツを配置
     /// </summary>
     private void SetupBPMSyncedSequence()
     {
@@ -146,19 +146,27 @@ public class GameManager : MonoBehaviour
         float beatDuration = GetBeatDuration();
         
         // メトロノームのオフセットを考慮
-        // （負のオフセットで早期開始、正のオフセットで遅延開始）
         float baseTime = -metronomeOffsetSeconds;
         
-        // 最大120秒間のノーツシーケンスを事前生成
-        for (int beatIndex = 1; beatIndex <= 480; beatIndex++)  // 480拍 = 120秒@120BPM
+        // 現在のお手本フェーズの持続時間を計算（秒）
+        float phaseDurationSeconds = GetPhaseDuration(GamePhase.Sample);
+        
+        // 現在のお手本フェーズ期間内のノーツのみを生成
+        int maxBeats = (int)Mathf.Ceil(phaseDurationSeconds / beatDuration);
+        
+        for (int beatIndex = 1; beatIndex <= maxBeats; beatIndex++)
         {
-            timings.Add(baseTime + beatIndex * beatDuration);
+            float noteTime = baseTime + beatIndex * beatDuration;
+            if (noteTime <= phaseDurationSeconds)  // お手本フェーズ期間内のみ追加
+            {
+                timings.Add(noteTime);
+            }
         }
 
         if (rhythmManager != null)
         {
             rhythmManager.SetTargetTimings(timings);
-            Debug.Log($"[GameManager] BPM同期シーケンス設定: {timings.Count}個のノーツを生成（オフセット: {metronomeOffsetSeconds:F3}秒）");
+            Debug.Log($"[GameManager] お手本フェーズ用シーケンス設定: {timings.Count}個のノーツを生成（フェーズ時間: {phaseDurationSeconds:F2}秒）");
         }
     }
 
@@ -257,12 +265,6 @@ public class GameManager : MonoBehaviour
     private void OnPlayerPhaseStart()
     {
         Debug.Log($"[GameManager] プレイヤーフェーズ開始（小節: {metronomeManager?.GetCurrentMeasure() ?? -1}） - 入力受付中");
-        
-        // ノーツ配置をリセット（プレイヤーフェーズではノーツが配置されないように）
-        if (rhythmManager != null)
-        {
-            rhythmManager.ResetNoteIndex();
-        }
         
         // プレイヤーフェーズでは前のお手本フェーズのノーツを残したままにする
         // NoteJudgeControllerが入力を処理する

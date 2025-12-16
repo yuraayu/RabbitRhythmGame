@@ -154,16 +154,6 @@ public class RhythmManager : MonoBehaviour
     }
 
     /// <summary>
-    /// プレイヤーフェーズへの切り替え時に呼び出す
-    /// ノーツ配置用インデックスをリセット（プレイヤーフェーズではノーツが配置されないようにするため）
-    /// </summary>
-    public void ResetNoteIndex()
-    {
-        nextNoteIndex = targetTimings.Count;  // インデックスを終端に移動
-        Debug.Log("[RhythmManager] ノーツインデックスをリセット（プレイヤーフェーズ開始）");
-    }
-
-    /// <summary>
     /// すべてのアクティブなノーツをクリアする
     /// </summary>
     public void ClearAllNotes()
