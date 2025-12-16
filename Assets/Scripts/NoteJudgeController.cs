@@ -69,12 +69,6 @@ public class NoteJudgeController : MonoBehaviour
     // Miss判定をチェックする
     private void CheckMissedNotes()
     {
-        // プレイフェーズ中のみ Miss チェックを行う
-        if (gameManager != null && gameManager.GetCurrentPhase() != GameManager.GamePhase.Play)
-        {
-            return;
-        }
-
         for (int i = activeNotes.Count - 1; i >= 0; i--)
         {
             GameObject note = activeNotes[i];
@@ -103,12 +97,6 @@ public class NoteJudgeController : MonoBehaviour
     // 例: Input.GetKeyDown(KeyCode.Space)などで呼び出す
     public void OnPlayerTap()
     {
-        // プレイフェーズ中のみ入力を受け付ける
-        if (gameManager != null && gameManager.GetCurrentPhase() != GameManager.GamePhase.Play)
-        {
-            return;
-        }
-
         if (activeNotes.Count == 0) return;
 
         // 判定ラインに最も近いノーツを取得（今回はリストの先頭と仮定）

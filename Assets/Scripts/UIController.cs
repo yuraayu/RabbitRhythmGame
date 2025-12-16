@@ -54,7 +54,6 @@ public class UIController : MonoBehaviour
         // UI更新
         UpdateScoreDisplay();
         UpdateComboDisplay();
-        UpdatePhaseDisplay();
         UpdateJudgmentDisplay();
     }
 
@@ -115,32 +114,6 @@ public class UIController : MonoBehaviour
         }
     }
 
-    private void UpdatePhaseDisplay()
-    {
-        if (phaseText != null && gameManager != null)
-        {
-            GameManager.GamePhase currentPhase = gameManager.GetCurrentPhase();
-            
-            switch (currentPhase)
-            {
-                case GameManager.GamePhase.Listen:
-                    phaseText.text = "Listen!";
-                    phaseText.color = Color.cyan;
-                    break;
-
-                case GameManager.GamePhase.Play:
-                    phaseText.text = "Play!";
-                    phaseText.color = Color.green;
-                    break;
-
-                case GameManager.GamePhase.Result:
-                    phaseText.text = "Result";
-                    phaseText.color = Color.yellow;
-                    break;
-            }
-        }
-    }
-
     private void UpdateJudgmentDisplay()
     {
         if (!isDisplayingJudgment) return;
@@ -190,12 +163,5 @@ public class UIController : MonoBehaviour
 
     // === 画面フェーズ遷移エフェクト ===
 
-    /// <summary>
-    /// フェーズ変更時のアニメーション
-    /// </summary>
-    public void PlayPhaseTransitionAnimation(GameManager.GamePhase newPhase)
-    {
-        // TODO: フェーズ遷移時のフラッシュやフェードアウト等のアニメーション
-        Debug.Log($"[UIController] フェーズ遷移アニメーション: {newPhase}");
-    }
+
 }

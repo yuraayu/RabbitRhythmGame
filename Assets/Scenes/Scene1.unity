@@ -158,6 +158,7 @@ MonoBehaviour:
   rhythmManager: {fileID: 1483926910}
   soundManager: {fileID: 1044933736}
   metronomeManager: {fileID: 1319734037}
+  metronomeOffsetSeconds: 0.02
   listenSequenceTimings: []
 --- !u!4 &279657070
 Transform:
