@@ -36,19 +36,10 @@ public class RhythmManager : MonoBehaviour
     [Tooltip("ノーツを配置するY座標 (テーブルの上)")]
     public float notePositionY = -2.0f;
     
-    // ノーツが消えるまでの時間 (プレイヤーがタップできる時間+猶予)
-    public float noteLifetime = 2.0f; 
-    
     // === プライベート変数 ===
     
     // 次に処理するノーツのインデックス
     private int nextNoteIndex = 0;
-
-    // ゲーム開始からの経過時間
-    private float startTime;
-    
-    // 前フレームで処理したノーツのタイミング（重複処理防止）
-    private float lastProcessedTiming = -1f;
     
     // === Unityライフサイクル ===
 
@@ -144,11 +135,10 @@ public class RhythmManager : MonoBehaviour
     /// <summary>
     /// 新しいお手本シーケンスを設定し、ノーツ生成を開始する
     /// </summary>
-    public void SetTargetTimings(List<float> timings, int baseTimeOffset = 0)
+    public void SetTargetTimings(List<float> timings)
     {
         targetTimings = new List<float>(timings);
         nextNoteIndex = 0;
-        lastProcessedTiming = -1f;
         
         Debug.Log($"[RhythmManager] 新しいシーケンスを設定：ノーツ数 = {targetTimings.Count}, タイミング = {string.Join(", ", timings)}");
     }

@@ -5,13 +5,13 @@ using System.Collections.Generic;
 public class NoteJudgeController : MonoBehaviour
 {
     // === 公開設定 ===
-    [Header("判定設定")]
-    [Tooltip("判定ラインのY座標。画面下の固定位置。")]
-    public float judgmentLineY = -4.0f; 
-    [Tooltip("Perfect判定となる距離の許容範囲")]
-    public float perfectRange = 0.1f;
-    [Tooltip("Good判定となる距離の許容範囲")]
-    public float goodRange = 0.2f;
+    [Header("判定設定（時間ベース）")]
+    [Tooltip("Perfect判定となる時間差（秒）")]
+    public float perfectTimingWindow = 0.1f;
+    [Tooltip("Good判定となる時間差（秒）")]
+    public float goodTimingWindow = 0.2f;
+    [Tooltip("Bad判定となる時間差（秒）")]
+    public float badTimingWindow = 0.3f;
 
     [Header("スコアリング設定")]
     public int perfectScore = 300;
@@ -41,6 +41,7 @@ public class NoteJudgeController : MonoBehaviour
     // === プライベート変数 ===
     private int currentScore = 0;
     private int currentCombo = 0;
+    private AudioSource audioSource;  // 音楽再生時間取得用
 
     // 現在、判定ラインに最も近い位置にあるノーツを追跡するためのリスト
     // 実際のゲームではレーンごとに管理が必要
@@ -49,6 +50,17 @@ public class NoteJudgeController : MonoBehaviour
     // ゲーム開始時や初期化時に呼び出す
     void Start()
     {
+        // GameManager から AudioSource を取得
+        if (gameManager != null)
+        {
+            audioSource = gameManager.GetComponent<AudioSource>();
+        }
+        
+        if (audioSource == null)
+        {
+            Debug.LogError("[NoteJudgeController] AudioSource が見つかりません");
+        }
+        
         Debug.Log("NoteJudgeControllerが初期化されました。");
     }
 
@@ -75,6 +87,8 @@ public class NoteJudgeController : MonoBehaviour
             return;
         }
 
+        float currentTime = (audioSource != null && audioSource.isPlaying) ? audioSource.time : 0f;
+
         for (int i = activeNotes.Count - 1; i >= 0; i--)
         {
             GameObject note = activeNotes[i];
@@ -86,10 +100,23 @@ public class NoteJudgeController : MonoBehaviour
                 continue;
             }
             
-            // ノーツが判定ラインから許容範囲を超えて遠ざかった（ミス）
-            if (note.transform.position.y < judgmentLineY - goodRange) 
+            // ノーツの目標時刻を取得
+            NoteData noteData = note.GetComponent<NoteData>();
+            if (noteData == null) continue;
+            
+            // タイミング差分を計算
+            float timingDifference = currentTime - noteData.targetTime;
+            
+            // ノーツがまだ判定ウィンドウの前の場合は判定しない
+            if (timingDifference < -perfectTimingWindow)
             {
-                Debug.Log("Miss!");
+                continue;
+            }
+            
+            // ノーツの目標時刻を通り過ぎた場合（Miss判定ウィンドウを超過）
+            if (timingDifference > badTimingWindow)
+            {
+                Debug.Log($"[NoteJudgeController] Miss! ノーツ目標時刻: {noteData.targetTime:F3}秒, 現在時刻: {currentTime:F3}秒, 差分: {timingDifference:F3}秒");
                 ProcessJudgment("Miss");
                 
                 // ノーツを破棄
@@ -114,15 +141,16 @@ public class NoteJudgeController : MonoBehaviour
         // 判定ラインに最も近いノーツを取得（今回はリストの先頭と仮定）
         GameObject closestNote = activeNotes[0];
         
-        // 判定ラインとの距離を計測
-        float distance = Mathf.Abs(closestNote.transform.position.y - judgmentLineY);
+        // 現在の音楽再生時間とノーツの目標時刻の差分を計測
+        float currentTime = (audioSource != null && audioSource.isPlaying) ? audioSource.time : 0f;
+        NoteData noteData = closestNote.GetComponent<NoteData>();
+        float timingDifference = currentTime - (noteData != null ? noteData.targetTime : 0f);
         
         // 判定処理を実行し、ノーツを破棄
-        string result = CheckHit(distance);
+        string result = CheckHitTiming(timingDifference);
         ProcessJudgment(result);
         
         // ノーツに判定済みフラグを設定
-        NoteData noteData = closestNote.GetComponent<NoteData>();
         if (noteData != null)
         {
             noteData.isJudged = true;
@@ -140,21 +168,26 @@ public class NoteJudgeController : MonoBehaviour
         activeNotes.RemoveAt(0);
     }
 
-    // 距離に基づいて判定を返す
-    public string CheckHit(float distance)
+    // 時間差に基づいて判定を返す（秒単位）
+    public string CheckHitTiming(float timingDifference)
     {
-        if (distance <= perfectRange)
+        float absDiff = Mathf.Abs(timingDifference);
+        
+        if (absDiff <= perfectTimingWindow)
         {
             return "Perfect";
         }
-        else if (distance <= goodRange)
+        else if (absDiff <= goodTimingWindow)
         {
             return "Good";
         }
-        else // goodRangeを超えているが、Miss判定エリアにまだ入っていない場合
+        else if (absDiff <= badTimingWindow)
         {
-            // この範囲は「Bad」として扱う
             return "Bad";
+        }
+        else
+        {
+            return "Miss";
         }
     }
 

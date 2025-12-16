@@ -153,11 +153,13 @@ MonoBehaviour:
   beatsPerMeasure: 4
   playerPhaseMeasures: 1
   samplePhaseMeasures: 1
+  notePatternBeats: 000000000100000002000000
   noteJudgeController: {fileID: 2130004430}
   rhythmManager: {fileID: 1483926910}
   soundManager: {fileID: 1044933736}
   metronomeManager: {fileID: 1319734037}
-  metronomeOffsetSeconds: -0.02
+  metronomeOffsetSeconds: -0.2
+  phaseSwitchDelaySeconds: 0
 --- !u!4 &279657070
 Transform:
   m_ObjectHideFlags: 0
@@ -1666,7 +1668,6 @@ MonoBehaviour:
   notePositionXBase: 0
   noteSpacingX: 1.5
   notePositionY: -2
-  noteLifetime: 2
 --- !u!4 &1483926911
 Transform:
   m_ObjectHideFlags: 0
@@ -1801,9 +1802,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47b4226e4cbc4f8488d18b061cf76206, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NoteJudgeController
-  judgmentLineY: -4
-  perfectRange: 0.1
-  goodRange: 0.2
+  perfectTimingWindow: 0.1
+  goodTimingWindow: 0.2
+  badTimingWindow: 0.3
   perfectScore: 300
   goodScore: 150
   badScore: 50
