@@ -27,6 +27,10 @@ public class MetronomeManager : MonoBehaviour
     [Tooltip("メトロノーム開始タイミングのオフセット（秒、負値で早める、正値で遅らせる）")]
     public float startTimeOffset = 0f;
 
+    [Header("フェーズ切り替え同期")]
+    [Tooltip("フェーズが切り替わるまでの小節数（例：2なら2小節ごとにフェーズ切り替え）")]
+    public int phaseSwitchMeasureInterval = 1;
+
     // === プライベート変数 ===
     private AudioSource audioSource;
     private float beatDuration;  // 1拍の時間（秒）
@@ -152,6 +156,31 @@ public class MetronomeManager : MonoBehaviour
     public (int measure, int beat) GetCurrentPosition()
     {
         return (currentMeasure, currentBeat);
+    }
+
+    /// <summary>
+    /// 現在の小節番号を取得（ゲーム開始からの累積小節数）
+    /// </summary>
+    public int GetCurrentMeasure()
+    {
+        return currentMeasure;
+    }
+
+    /// <summary>
+    /// 現在の拍を取得（0～beatsPerMeasure-1）
+    /// </summary>
+    public int GetCurrentBeat()
+    {
+        return currentBeat;
+    }
+
+    /// <summary>
+    /// 現在がメトロノーム開始からの経過時間（秒）
+    /// </summary>
+    public float GetElapsedTime()
+    {
+        if (!isMetronomeStarted) return 0f;
+        return Time.time - metronomeStartTime;
     }
 
     /// <summary>

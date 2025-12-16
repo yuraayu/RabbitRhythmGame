@@ -57,6 +57,7 @@ public class GameManager : MonoBehaviour
     private GamePhase currentPhase = GamePhase.Sample;
     private float phaseStartTime = 0f;
     private int roundCount = 0;
+    private int lastPhaseSwitchMeasure = -1;  // 最後にフェーズを切り替えた小節番号
 
     // === Unityライフサイクル ===
 
@@ -115,6 +116,7 @@ public class GameManager : MonoBehaviour
         roundCount = 0;
         currentPhase = GamePhase.Sample;
         phaseStartTime = Time.time;
+        lastPhaseSwitchMeasure = -1;  // 初期化
 
         // 音楽再生開始
         if (musicClip != null)
@@ -127,6 +129,7 @@ public class GameManager : MonoBehaviour
         {
             metronomeManager.StartMetronome(metronomeOffsetSeconds);
             Debug.Log($"[GameManager] メトロノーム開始（オフセット: {metronomeOffsetSeconds:F3}秒）");
+            Debug.Log($"[GameManager] フェーズ切り替え間隔: {metronomeManager.phaseSwitchMeasureInterval}小節");
         }
 
         Debug.Log("[GameManager] ゲーム開始！お手本フェーズから始まります。");
@@ -163,21 +166,48 @@ public class GameManager : MonoBehaviour
 
     private void UpdatePhase()
     {
-        float elapsedTime = Time.time - phaseStartTime;
-        float phaseDuration = GetPhaseDuration(currentPhase);
-
-        if (elapsedTime >= phaseDuration)
+        // メトロノームが有効で開始している場合、メトロノームの小節頭でフェーズ切り替え
+        if (metronomeManager != null && metronomeManager.isMetronomeEnabled)
         {
-            // フェーズ切り替え
-            if (currentPhase == GamePhase.Player)
+            int currentMeasure = metronomeManager.GetCurrentMeasure();
+            int currentBeat = metronomeManager.GetCurrentBeat();
+
+            // 小節頭（拍0）に到達したかつ、前回のフェーズ切り替えから十分な小節が経過
+            if (currentBeat == 0 && currentMeasure != lastPhaseSwitchMeasure)
             {
-                TransitionToPhase(GamePhase.Sample);
-            }
-            else
-            {
-                TransitionToPhase(GamePhase.Player);
+                int measuresSinceLastSwitch = currentMeasure - lastPhaseSwitchMeasure;
+                int targetInterval = GetPhaseSwitchInterval();
+
+                if (measuresSinceLastSwitch >= targetInterval)
+                {
+                    TransitionToPhase(currentPhase == GamePhase.Player ? GamePhase.Sample : GamePhase.Player);
+                    lastPhaseSwitchMeasure = currentMeasure;
+                }
             }
         }
+        else
+        {
+            // メトロノームが無効な場合は、従来の時間ベースのフェーズ更新
+            float elapsedTime = Time.time - phaseStartTime;
+            float phaseDuration = GetPhaseDuration(currentPhase);
+
+            if (elapsedTime >= phaseDuration)
+            {
+                TransitionToPhase(currentPhase == GamePhase.Player ? GamePhase.Sample : GamePhase.Player);
+            }
+        }
+    }
+
+    /// <summary>
+    /// フェーズ切り替え間隔（小節数）を取得
+    /// </summary>
+    private int GetPhaseSwitchInterval()
+    {
+        if (metronomeManager != null)
+        {
+            return metronomeManager.phaseSwitchMeasureInterval;
+        }
+        return playerPhaseMeasures;  // メトロノーム無効時はフォールバック
     }
 
     /// <summary>
@@ -212,7 +242,7 @@ public class GameManager : MonoBehaviour
     private void OnSamplePhaseStart()
     {
         roundCount++;
-        Debug.Log($"[GameManager] ラウンド {roundCount} - お手本フェーズ開始");
+        Debug.Log($"[GameManager] ラウンド {roundCount} - お手本フェーズ開始（小節: {metronomeManager?.GetCurrentMeasure() ?? -1}）");
         
         // プレイヤーフェーズで食べられなかったノーツをフェードアウト
         if (noteJudgeController != null)
@@ -226,7 +256,7 @@ public class GameManager : MonoBehaviour
 
     private void OnPlayerPhaseStart()
     {
-        Debug.Log("[GameManager] プレイヤーフェーズ開始 - 入力受付中");
+        Debug.Log($"[GameManager] プレイヤーフェーズ開始（小節: {metronomeManager?.GetCurrentMeasure() ?? -1}） - 入力受付中");
         
         // プレイヤーフェーズでは前のお手本フェーズのノーツを残したままにする
         // NoteJudgeControllerが入力を処理する
