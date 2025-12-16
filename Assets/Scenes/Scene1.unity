@@ -151,11 +151,13 @@ MonoBehaviour:
   musicClip: {fileID: 8300000, guid: 3ba7df5fc0299e843a9f535bfbe4bfbe, type: 3}
   bpm: 135
   beatsPerMeasure: 4
+  playerPhaseMeasures: 1
+  samplePhaseMeasures: 1
   noteJudgeController: {fileID: 2130004430}
   rhythmManager: {fileID: 1483926910}
   soundManager: {fileID: 1044933736}
   metronomeManager: {fileID: 1319734037}
-  metronomeOffsetSeconds: -0.35
+  metronomeOffsetSeconds: -0.02
 --- !u!4 &279657070
 Transform:
   m_ObjectHideFlags: 0
@@ -998,6 +1000,8 @@ MonoBehaviour:
   carrotPlacedSE: {fileID: 8300000, guid: 9f653a2d8e89abc439483be8e3657c45, type: 3}
   playPhaseSE: {fileID: 0}
   listenPhaseEndSE: {fileID: 8300000, guid: 742ed122dc2297b42ab828714ab91924, type: 3}
+  samplePhaseBeatSound: {fileID: 8300000, guid: 018fc4cf2b055754aa01c77ca3d04991, type: 3}
+  playerPhaseBeatSound: {fileID: 8300000, guid: 4471eec146b744145b16dfab311bf53a, type: 3}
   bitePerfectSE: {fileID: 8300000, guid: c1b7bc924f284db4a89d49899c539541, type: 3}
   biteGoodSE: {fileID: 8300000, guid: c09463620165d4f47900b244aa9fe348, type: 3}
   biteBadSE: {fileID: 8300000, guid: 6612afac7e3fafe418ac7dd3ab9e0ca9, type: 3}
@@ -1385,10 +1389,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MetronomeManager
   bpm: 135
   beatsPerMeasure: 4
-  beatSound: {fileID: 8300000, guid: 018fc4cf2b055754aa01c77ca3d04991, type: 3}
+  beatSound: {fileID: 8300000, guid: a945839ad13be0a4794cbead60d1b4a4, type: 3}
   measureHeadSound: {fileID: 8300000, guid: bedeb9710e0ab984e8131bc13e6c3718, type: 3}
   isMetronomeEnabled: 1
-  startTimeOffset: 0
+  startTimeOffset: -0.35
+  phaseSwitchMeasureInterval: 1
+  gameManager: {fileID: 279657069}
+  soundManager: {fileID: 1044933736}
 --- !u!4 &1319734038
 Transform:
   m_ObjectHideFlags: 0

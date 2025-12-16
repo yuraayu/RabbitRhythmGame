@@ -139,7 +139,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// BPMに同期した4/4拍子ノーツシーケンスを生成
     /// 現在のお手本フェーズ期間中のみノーツを配置
-    /// フェーズ開始時の音楽再生時間を基準にしたタイミングを生成
+    /// メトロノームの小節頭（拍0）からの相対タイミングで計算
     /// </summary>
     private void SetupBPMSyncedSequence()
     {
@@ -152,19 +152,37 @@ public class GameManager : MonoBehaviour
         // 現在の音楽再生時間を基準にする（このフェーズ開始時点の音楽時間）
         float phaseStartMusicTime = audioSource != null ? audioSource.time : 0f;
         
-        // メトロノームのオフセットを考慮
-        float baseTime = -metronomeOffsetSeconds;
+        // メトロノームが有効な場合、メトロノーム小節頭との相対タイミングで計算
+        float effectivePhaseStartTime = phaseStartMusicTime;
+        
+        if (metronomeManager != null && metronomeManager.isMetronomeEnabled)
+        {
+            // メトロノームの経過時間を取得
+            float metronomeElapsedTime = metronomeManager.GetElapsedTime();
+            
+            // 現在の拍位置を計算
+            int currentBeat = metronomeManager.GetCurrentBeat();
+            
+            // 小節頭からの経過時間を計算
+            float timeIntoCurrentMeasure = currentBeat * beatDuration;
+            
+            // 次の小節頭までの時間を計算
+            float timeToNextMeasureHead = (beatsPerMeasure - currentBeat) * beatDuration;
+            
+            // 小節頭を基準にしたフェーズ開始時間
+            effectivePhaseStartTime = phaseStartMusicTime - timeIntoCurrentMeasure;
+        }
         
         // フェーズ期間内のノーツのみを生成
-        // タイミングは「フェーズ開始時の音楽時間 + オフセット」で計算
+        // タイミングは「フェーズ開始時間 + 拍間隔」で計算
         int maxBeats = (int)Mathf.Ceil(phaseDurationSeconds / beatDuration);
         
-        for (int beatIndex = 1; beatIndex <= maxBeats; beatIndex++)
+        for (int beatIndex = 0; beatIndex < maxBeats; beatIndex++)
         {
-            float offsetTime = baseTime + beatIndex * beatDuration;
-            if (offsetTime <= phaseDurationSeconds)  // フェーズ期間内のみ追加
+            float offsetTime = beatIndex * beatDuration;
+            if (offsetTime < phaseDurationSeconds)  // フェーズ期間内のみ追加
             {
-                float absoluteTime = phaseStartMusicTime + offsetTime;
+                float absoluteTime = effectivePhaseStartTime + offsetTime;
                 timings.Add(absoluteTime);
             }
         }
@@ -172,7 +190,7 @@ public class GameManager : MonoBehaviour
         if (rhythmManager != null)
         {
             rhythmManager.SetTargetTimings(timings);
-            Debug.Log($"[GameManager] お手本フェーズ用シーケンス設定: {timings.Count}個のノーツを生成（フェーズ開始時間: {phaseStartMusicTime:F2}秒, フェーズ期間: {phaseDurationSeconds:F2}秒）");
+            Debug.Log($"[GameManager] お手本フェーズ用シーケンス設定: {timings.Count}個のノーツを生成（フェーズ開始時間: {effectivePhaseStartTime:F2}秒, 期間: {phaseDurationSeconds:F2}秒）");
         }
     }
 
