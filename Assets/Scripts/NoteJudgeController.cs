@@ -69,6 +69,12 @@ public class NoteJudgeController : MonoBehaviour
     // Miss判定をチェックする
     private void CheckMissedNotes()
     {
+        // プレイヤーフェーズ中のみ Miss チェックを行う
+        if (gameManager != null && gameManager.GetCurrentPhase() != GameManager.GamePhase.Player)
+        {
+            return;
+        }
+
         for (int i = activeNotes.Count - 1; i >= 0; i--)
         {
             GameObject note = activeNotes[i];
@@ -97,6 +103,12 @@ public class NoteJudgeController : MonoBehaviour
     // 例: Input.GetKeyDown(KeyCode.Space)などで呼び出す
     public void OnPlayerTap()
     {
+        // プレイヤーフェーズ中のみ入力を受け付ける
+        if (gameManager != null && gameManager.GetCurrentPhase() != GameManager.GamePhase.Player)
+        {
+            return;
+        }
+
         if (activeNotes.Count == 0) return;
 
         // 判定ラインに最も近いノーツを取得（今回はリストの先頭と仮定）
@@ -286,6 +298,70 @@ public class NoteJudgeController : MonoBehaviour
         currentScore = 0;
         currentCombo = 0;
         Debug.Log("[NoteJudgeController] スコアとコンボをリセットしました");
+    }
+
+    /// <summary>
+    /// 判定されなかったノーツをフェードアウトして消す
+    /// お手本フェーズ移行時に呼び出す
+    /// </summary>
+    public void FadeOutAndRemoveUnjudgedNotes()
+    {
+        for (int i = activeNotes.Count - 1; i >= 0; i--)
+        {
+            GameObject note = activeNotes[i];
+            if (note == null)
+            {
+                activeNotes.RemoveAt(i);
+                continue;
+            }
+
+            // NoteDataから判定状態を確認
+            NoteData noteData = note.GetComponent<NoteData>();
+            if (noteData != null && !noteData.isJudged)
+            {
+                // ノーツに落下・フェードアウトアニメーションを開始
+                StartCoroutine(AnimateNoteDropAndFade(note));
+                activeNotes.RemoveAt(i);
+            }
+        }
+        
+        Debug.Log($"[NoteJudgeController] 未判定のノーツをフェードアウト中");
+    }
+
+    /// <summary>
+    /// ノーツが下に落下してフェードアウトするアニメーション
+    /// </summary>
+    private System.Collections.IEnumerator AnimateNoteDropAndFade(GameObject note)
+    {
+        if (note == null) yield break;
+
+        CanvasGroup canvasGroup = note.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
+        {
+            canvasGroup = note.AddComponent<CanvasGroup>();
+        }
+
+        float duration = fadeOutDuration;
+        float elapsedTime = 0f;
+        Vector3 startPosition = note.transform.position;
+        Vector3 endPosition = startPosition + Vector3.down * 3f;  // 下に3単位分落下
+
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / duration;
+
+            // 落下
+            note.transform.position = Vector3.Lerp(startPosition, endPosition, t);
+
+            // フェードアウト
+            canvasGroup.alpha = Mathf.Lerp(1f, 0f, t);
+
+            yield return null;
+        }
+
+        // クリーンアップ
+        Destroy(note);
     }
 
     /// <summary>

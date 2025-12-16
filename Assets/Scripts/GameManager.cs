@@ -4,10 +4,18 @@ using System.Collections.Generic;
 
 /// <summary>
 /// ゲーム全体を統括するマネージャー
-/// BPMに同期した4/4拍子でノーツを継続配置（フェーズなし）
+/// プレイヤーフェーズ→お手本フェーズで交互に切り替え
+/// ノーツはメトロノームのオフセットを反映して配置
 /// </summary>
 public class GameManager : MonoBehaviour
 {
+    // === ゲームフェーズ定義 ===
+    public enum GamePhase
+    {
+        Player,    // プレイヤーフェーズ（入力受け付け）
+        Sample     // お手本フェーズ（ノーツ表示のみ）
+    }
+
     // === 公開設定 ===
     [Header("ゲーム設定")]
     [Tooltip("再生する楽曲")]
@@ -18,6 +26,13 @@ public class GameManager : MonoBehaviour
     
     [Tooltip("1小節の拍数")]
     public int beatsPerMeasure = 4;
+
+    [Header("フェーズ設定")]
+    [Tooltip("プレイヤーフェーズの小節数")]
+    public int playerPhaseMeasures = 1;
+    
+    [Tooltip("お手本フェーズの小節数")]
+    public int samplePhaseMeasures = 1;
 
     [Header("コンポーネント参照")]
     [Tooltip("ノーツ判定用コントローラ")]
@@ -39,6 +54,9 @@ public class GameManager : MonoBehaviour
     // === プライベート変数 ===
     private AudioSource audioSource;
     private bool isGameActive = false;
+    private GamePhase currentPhase = GamePhase.Sample;
+    private float phaseStartTime = 0f;
+    private int roundCount = 0;
 
     // === Unityライフサイクル ===
 
@@ -51,8 +69,14 @@ public class GameManager : MonoBehaviour
     {
         if (!isGameActive) return;
 
-        // プレイヤー入力検出（常に受け付ける）
-        HandlePlayerInput();
+        // フェーズ更新
+        UpdatePhase();
+
+        // プレイヤーフェーズ中のみ入力を受け付ける
+        if (currentPhase == GamePhase.Player)
+        {
+            HandlePlayerInput();
+        }
     }
 
     // === 初期化 ===
@@ -88,9 +112,9 @@ public class GameManager : MonoBehaviour
     private void StartGame()
     {
         isGameActive = true;
-
-        // 4/4拍子で自動ノーツ配置シーケンスを生成
-        SetupBPMSyncedSequence();
+        roundCount = 0;
+        currentPhase = GamePhase.Sample;
+        phaseStartTime = Time.time;
 
         // 音楽再生開始
         if (musicClip != null)
@@ -105,34 +129,108 @@ public class GameManager : MonoBehaviour
             Debug.Log($"[GameManager] メトロノーム開始（オフセット: {metronomeOffsetSeconds:F3}秒）");
         }
 
-        Debug.Log("[GameManager] ゲーム開始！BPM同期モードで稼働中です。");
+        Debug.Log("[GameManager] ゲーム開始！お手本フェーズから始まります。");
+        OnSamplePhaseStart();
     }
 
     /// <summary>
     /// BPMに同期した4/4拍子ノーツシーケンスを生成（無限ループ）
-    /// 各拍にノーツを配置：1拍目, 2拍目, 3拍目...
+    /// メトロノームのオフセットを反映
     /// </summary>
     private void SetupBPMSyncedSequence()
     {
         List<float> timings = new List<float>();
         float beatDuration = GetBeatDuration();
         
+        // メトロノームのオフセットを考慮
+        // （負のオフセットで早期開始、正のオフセットで遅延開始）
+        float baseTime = -metronomeOffsetSeconds;
+        
         // 最大120秒間のノーツシーケンスを事前生成
         for (int beatIndex = 1; beatIndex <= 480; beatIndex++)  // 480拍 = 120秒@120BPM
         {
-            timings.Add(beatIndex * beatDuration);
+            timings.Add(baseTime + beatIndex * beatDuration);
         }
 
         if (rhythmManager != null)
         {
             rhythmManager.SetTargetTimings(timings);
-            Debug.Log($"[GameManager] BPM同期シーケンス設定: {timings.Count}個のノーツを生成");
+            Debug.Log($"[GameManager] BPM同期シーケンス設定: {timings.Count}個のノーツを生成（オフセット: {metronomeOffsetSeconds:F3}秒）");
         }
     }
 
+    // === フェーズ更新 ===
 
+    private void UpdatePhase()
+    {
+        float elapsedTime = Time.time - phaseStartTime;
+        float phaseDuration = GetPhaseDuration(currentPhase);
 
-    // === プレイヤー入力処理 ===
+        if (elapsedTime >= phaseDuration)
+        {
+            // フェーズ切り替え
+            if (currentPhase == GamePhase.Player)
+            {
+                TransitionToPhase(GamePhase.Sample);
+            }
+            else
+            {
+                TransitionToPhase(GamePhase.Player);
+            }
+        }
+    }
+
+    /// <summary>
+    /// フェーズの持続時間を計算
+    /// </summary>
+    private float GetPhaseDuration(GamePhase phase)
+    {
+        int measures = (phase == GamePhase.Player) ? playerPhaseMeasures : samplePhaseMeasures;
+        return (measures * beatsPerMeasure * 60f) / bpm;
+    }
+
+    /// <summary>
+    /// フェーズを遷移
+    /// </summary>
+    private void TransitionToPhase(GamePhase newPhase)
+    {
+        currentPhase = newPhase;
+        phaseStartTime = Time.time;
+
+        if (newPhase == GamePhase.Sample)
+        {
+            OnSamplePhaseStart();
+        }
+        else
+        {
+            OnPlayerPhaseStart();
+        }
+    }
+
+    // === フェーズ処理 ===
+
+    private void OnSamplePhaseStart()
+    {
+        roundCount++;
+        Debug.Log($"[GameManager] ラウンド {roundCount} - お手本フェーズ開始");
+        
+        // プレイヤーフェーズで食べられなかったノーツをフェードアウト
+        if (noteJudgeController != null)
+        {
+            noteJudgeController.FadeOutAndRemoveUnjudgedNotes();
+        }
+        
+        // お手本フェーズ用のノーツを生成
+        SetupBPMSyncedSequence();
+    }
+
+    private void OnPlayerPhaseStart()
+    {
+        Debug.Log("[GameManager] プレイヤーフェーズ開始 - 入力受付中");
+        
+        // プレイヤーフェーズでは前のお手本フェーズのノーツを残したままにする
+        // NoteJudgeControllerが入力を処理する
+    }
 
     private void HandlePlayerInput()
     {
@@ -156,6 +254,11 @@ public class GameManager : MonoBehaviour
     }
 
     // === 外部からのアクセス用メソッド ===
+
+    public GamePhase GetCurrentPhase()
+    {
+        return currentPhase;
+    }
 
     public float GetBeatDuration()
     {

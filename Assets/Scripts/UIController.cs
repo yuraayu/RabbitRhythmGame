@@ -54,6 +54,7 @@ public class UIController : MonoBehaviour
         // UI更新
         UpdateScoreDisplay();
         UpdateComboDisplay();
+        UpdatePhaseDisplay();
         UpdateJudgmentDisplay();
     }
 
@@ -110,6 +111,27 @@ public class UIController : MonoBehaviour
             {
                 comboText.text = "Combo: 0";
                 comboText.fontSize = normalFontSize;
+            }
+        }
+    }
+
+    private void UpdatePhaseDisplay()
+    {
+        if (phaseText != null && gameManager != null)
+        {
+            GameManager.GamePhase currentPhase = gameManager.GetCurrentPhase();
+            
+            switch (currentPhase)
+            {
+                case GameManager.GamePhase.Sample:
+                    phaseText.text = "Sample";
+                    phaseText.color = Color.cyan;
+                    break;
+
+                case GameManager.GamePhase.Player:
+                    phaseText.text = "Player";
+                    phaseText.color = Color.green;
+                    break;
             }
         }
     }

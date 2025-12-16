@@ -151,15 +151,11 @@ MonoBehaviour:
   musicClip: {fileID: 8300000, guid: 3ba7df5fc0299e843a9f535bfbe4bfbe, type: 3}
   bpm: 135
   beatsPerMeasure: 4
-  listenPhaseMeasures: 1
-  playPhaseMeasures: 1
-  resultPhaseDuration: 0.5
   noteJudgeController: {fileID: 2130004430}
   rhythmManager: {fileID: 1483926910}
   soundManager: {fileID: 1044933736}
   metronomeManager: {fileID: 1319734037}
-  metronomeOffsetSeconds: 0.02
-  listenSequenceTimings: []
+  metronomeOffsetSeconds: -0.35
 --- !u!4 &279657070
 Transform:
   m_ObjectHideFlags: 0
