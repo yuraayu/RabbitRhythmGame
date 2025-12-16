@@ -34,6 +34,9 @@ public class GameManager : MonoBehaviour
     [Tooltip("お手本フェーズの小節数")]
     public int samplePhaseMeasures = 1;
 
+    [Tooltip("お手本フェーズで人参が置かれる拍（例：0,1,2で拍0,1,2に配置）")]
+    public int[] notePatternBeats = { 0, 1, 2 };
+
     [Header("コンポーネント参照")]
     [Tooltip("ノーツ判定用コントローラ")]
     public NoteJudgeController noteJudgeController;
@@ -141,63 +144,52 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// BPMに同期した4/4拍子ノーツシーケンスを生成
-    /// 現在のお手本フェーズ期間中のみノーツを配置
-    /// メトロノームの小節末尾からの相対タイミングで計算
+    /// BPMに同期したノーツシーケンスを生成
+    /// お手本フェーズ開始時の小節頭（拍0）を基準にして、notePatternBeats で指定された拍に人参を配置
     /// </summary>
     private void SetupBPMSyncedSequence()
     {
         List<float> timings = new List<float>();
         float beatDuration = GetBeatDuration();
         
-        // 現在のお手本フェーズの持続時間を計算（秒）
-        float phaseDurationSeconds = GetPhaseDuration(GamePhase.Sample);
-        
         // 現在の音楽再生時間を基準にする（このフェーズ開始時点の音楽時間）
         float phaseStartMusicTime = audioSource != null ? audioSource.time : 0f;
         
-        // メトロノームが有効な場合、メトロノーム小節末尾との相対タイミングで計算
+        // メトロノームが有効な場合、フェーズ開始時点の小節頭を基準にして計算
         float effectivePhaseStartTime = phaseStartMusicTime;
         
         if (metronomeManager != null && metronomeManager.isMetronomeEnabled)
         {
-            // メトロノームの経過時間を取得
-            float metronomeElapsedTime = metronomeManager.GetElapsedTime();
-            
             // 現在の拍位置を計算
             int currentBeat = metronomeManager.GetCurrentBeat();
             
-            // 小節末尾（最後の拍）からの経過時間を計算
-            // 小節末尾は beatsPerMeasure - 1 なので、そこからの距離を計算
-            int beatsToMeasureTail = (beatsPerMeasure - 1) - currentBeat;
-            if (beatsToMeasureTail < 0)
-            {
-                beatsToMeasureTail += beatsPerMeasure;  // 次の小節末尾
-            }
-            float timeToMeasureTail = beatsToMeasureTail * beatDuration;
+            // フェーズ開始時点から小節頭までの距離を計算
+            // 小節頭は拍0なので、現在の拍位置から遡る
+            int beatsToMeasureHead = (beatsPerMeasure - currentBeat) % beatsPerMeasure;
+            float timeToMeasureHead = beatsToMeasureHead * beatDuration;
             
-            // 小節末尾を基準にしたフェーズ開始時間
-            effectivePhaseStartTime = phaseStartMusicTime - timeToMeasureTail;
+            // 小節頭を基準にしたフェーズ開始時間
+            effectivePhaseStartTime = phaseStartMusicTime + timeToMeasureHead;
         }
         
-        // フェーズ期間内のノーツのみを生成
-        // タイミングは「フェーズ開始時間 + 拍間隔」で計算
-        int maxBeats = (int)Mathf.Ceil(phaseDurationSeconds / beatDuration);
-        
-        for (int beatIndex = 0; beatIndex < maxBeats; beatIndex++)
+        // notePatternBeats で指定された拍にノーツを配置
+        if (notePatternBeats != null && notePatternBeats.Length > 0)
         {
-            float offsetTime = beatIndex * beatDuration;
-            if (offsetTime < phaseDurationSeconds)  // フェーズ期間内のみ追加
+            foreach (int beatIndex in notePatternBeats)
             {
-                float absoluteTime = effectivePhaseStartTime + offsetTime;
-                timings.Add(absoluteTime);
+                if (beatIndex >= 0 && beatIndex < beatsPerMeasure)
+                {
+                    float offsetTime = beatIndex * beatDuration;
+                    float absoluteTime = effectivePhaseStartTime + offsetTime;
+                    timings.Add(absoluteTime);
+                }
             }
         }
 
         if (rhythmManager != null)
         {
             rhythmManager.SetTargetTimings(timings);
-            Debug.Log($"[GameManager] お手本フェーズ用シーケンス設定: {timings.Count}個のノーツを生成（フェーズ開始時間: {effectivePhaseStartTime:F2}秒, 期間: {phaseDurationSeconds:F2}秒）");
+            Debug.Log($"[GameManager] お手本フェーズ用シーケンス設定: {timings.Count}個のノーツを生成（パターン: [{string.Join(",", notePatternBeats)}], フェーズ開始時間: {effectivePhaseStartTime:F2}秒）");
         }
     }
 
