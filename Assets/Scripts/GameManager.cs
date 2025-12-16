@@ -61,6 +61,7 @@ public class GameManager : MonoBehaviour
     private float phaseStartTime = 0f;
     private int roundCount = 0;
     private int lastPhaseSwitchMeasure = -1;  // 最後にフェーズを切り替えた小節番号
+    private float phaseSwitchReadyTime = -1f;  // フェーズ切り替え準備完了時刻（遅延用）
 
     // === Unityライフサイクル ===
 
@@ -217,19 +218,19 @@ public class GameManager : MonoBehaviour
                 int measuresSinceLastSwitch = currentMeasure - lastPhaseSwitchMeasure;
                 int targetInterval = GetPhaseSwitchInterval();
 
-                if (measuresSinceLastSwitch >= targetInterval)
+                if (measuresSinceLastSwitch >= targetInterval && phaseSwitchReadyTime < 0f)
                 {
-                    // フェーズ切り替え遅延を適用
-                    float metronomeElapsedTime = metronomeManager.GetElapsedTime();
-                    float beatDuration = GetBeatDuration();
-                    float timeSinceMeasureTail = metronomeElapsedTime % (beatDuration * beatsPerMeasure) - (measureTailBeat * beatDuration);
-                    
-                    if (timeSinceMeasureTail >= phaseSwitchDelaySeconds)
-                    {
-                        TransitionToPhase(currentPhase == GamePhase.Player ? GamePhase.Sample : GamePhase.Player);
-                        lastPhaseSwitchMeasure = currentMeasure;
-                    }
+                    // フェーズ切り替え準備完了時刻を記録
+                    phaseSwitchReadyTime = Time.time;
                 }
+            }
+
+            // フェーズ切り替え遅延が経過したら実際に切り替え
+            if (phaseSwitchReadyTime >= 0f && Time.time - phaseSwitchReadyTime >= phaseSwitchDelaySeconds)
+            {
+                TransitionToPhase(currentPhase == GamePhase.Player ? GamePhase.Sample : GamePhase.Player);
+                lastPhaseSwitchMeasure = metronomeManager.GetCurrentMeasure();
+                phaseSwitchReadyTime = -1f;  // リセット
             }
         }
         else
