@@ -182,6 +182,7 @@ public class GameManager : MonoBehaviour
                     float offsetTime = beatIndex * beatDuration;
                     float absoluteTime = effectivePhaseStartTime + offsetTime;
                     timings.Add(absoluteTime);
+                    Debug.Log($"[GameManager] ノーツ追加: 拍{beatIndex} -> 時刻{absoluteTime:F3}秒");
                 }
             }
         }
