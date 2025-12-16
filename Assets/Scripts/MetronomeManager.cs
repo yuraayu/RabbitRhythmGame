@@ -31,6 +31,13 @@ public class MetronomeManager : MonoBehaviour
     [Tooltip("フェーズが切り替わるまでの小節数（例：2なら2小節ごとにフェーズ切り替え）")]
     public int phaseSwitchMeasureInterval = 1;
 
+    [Header("ゲーム連携")]
+    [Tooltip("ゲームマネージャー（現在のフェーズを取得するため）")]
+    public GameManager gameManager;
+
+    [Tooltip("効果音マネージャー（フェーズ別拍音を再生するため）")]
+    public SoundManager soundManager;
+
     // === プライベート変数 ===
     private AudioSource audioSource;
     private float beatDuration;  // 1拍の時間（秒）
@@ -119,7 +126,7 @@ public class MetronomeManager : MonoBehaviour
     /// </summary>
     private void PlayBeat()
     {
-        AudioClip clip = (currentBeat == 0) ? measureHeadSound : beatSound;
+        AudioClip clip = (currentBeat == 0) ? measureHeadSound : GetBeatSoundForPhase();
         
         if (clip != null)
         {
@@ -130,6 +137,33 @@ public class MetronomeManager : MonoBehaviour
         {
             Debug.LogWarning($"[MetronomeManager] ビート音が設定されていません (小節頭={currentBeat == 0})");
         }
+    }
+
+    /// <summary>
+    /// 現在のゲームフェーズに応じた拍音を取得
+    /// </summary>
+    private AudioClip GetBeatSoundForPhase()
+    {
+        if (gameManager == null)
+        {
+            // gameManager が未設定の場合はログ出力（初回のみ）
+            return null;
+        }
+
+        GameManager.GamePhase currentPhase = gameManager.GetCurrentPhase();
+        bool isPlayerPhase = (currentPhase == GameManager.GamePhase.Player);
+
+        // SoundManager 経由で、フェーズに応じた拍音を取得
+        if (soundManager != null)
+        {
+            // メトロノーム小節頭以外の拍の場合
+            if (currentBeat != 0)
+            {
+                return isPlayerPhase ? soundManager.playerPhaseBeatSound : soundManager.samplePhaseBeatSound;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

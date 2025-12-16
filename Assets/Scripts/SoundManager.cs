@@ -15,6 +15,13 @@ public class SoundManager : MonoBehaviour
     
     [Tooltip("お手本フェーズ終了時の合図音（ハイ！）")]
     public AudioClip listenPhaseEndSE;
+
+    [Header("メトロノーム音")]
+    [Tooltip("お手本フェーズ用のメトロノーム拍音")]
+    public AudioClip samplePhaseBeatSound;
+
+    [Tooltip("プレイヤーフェーズ用のメトロノーム拍音")]
+    public AudioClip playerPhaseBeatSound;
     
     [Tooltip("ウサギがかじる音（Perfect 用）")]
     public AudioClip bitePerfectSE;
@@ -131,6 +138,18 @@ public class SoundManager : MonoBehaviour
                 break;
         }
 
+        if (clip != null)
+        {
+            PlaySound(clip);
+        }
+    }
+
+    /// <summary>
+    /// メトロノーム用拍音を再生（フェーズに応じた音）
+    /// </summary>
+    public void PlayMetronomeBeatSound(bool isPlayerPhase)
+    {
+        AudioClip clip = isPlayerPhase ? playerPhaseBeatSound : samplePhaseBeatSound;
         if (clip != null)
         {
             PlaySound(clip);
