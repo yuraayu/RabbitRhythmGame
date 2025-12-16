@@ -258,6 +258,12 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log($"[GameManager] プレイヤーフェーズ開始（小節: {metronomeManager?.GetCurrentMeasure() ?? -1}） - 入力受付中");
         
+        // ノーツ配置をリセット（プレイヤーフェーズではノーツが配置されないように）
+        if (rhythmManager != null)
+        {
+            rhythmManager.ResetNoteIndex();
+        }
+        
         // プレイヤーフェーズでは前のお手本フェーズのノーツを残したままにする
         // NoteJudgeControllerが入力を処理する
     }

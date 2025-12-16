@@ -76,6 +76,12 @@ public class RhythmManager : MonoBehaviour
 
     void Update()
     {
+        // お手本フェーズ中のみノーツを配置
+        if (gameManager != null && gameManager.GetCurrentPhase() != GameManager.GamePhase.Sample)
+        {
+            return;
+        }
+
         // 音楽が再生中でない場合は処理しない
         if (audioSource == null || !audioSource.isPlaying) return;
 
@@ -145,6 +151,16 @@ public class RhythmManager : MonoBehaviour
         lastProcessedTiming = -1f;
         
         Debug.Log($"[RhythmManager] 新しいシーケンスを設定：ノーツ数 = {targetTimings.Count}, タイミング = {string.Join(", ", timings)}");
+    }
+
+    /// <summary>
+    /// プレイヤーフェーズへの切り替え時に呼び出す
+    /// ノーツ配置用インデックスをリセット（プレイヤーフェーズではノーツが配置されないようにするため）
+    /// </summary>
+    public void ResetNoteIndex()
+    {
+        nextNoteIndex = targetTimings.Count;  // インデックスを終端に移動
+        Debug.Log("[RhythmManager] ノーツインデックスをリセット（プレイヤーフェーズ開始）");
     }
 
     /// <summary>
